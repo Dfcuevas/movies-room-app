@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import Search from "./components/Search";
 import Spinner from "./components/Spinner";
 import MovieCard from "./components/MovieCard";
+import { useDebounce } from "react-use";
+import { udpateSearchCount } from "./appwrite";
 
 const API_BASE_URL = "https://api.themoviedb.org/3";
 
@@ -20,6 +22,9 @@ function App() {
   const [movieData, setMovieData] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm]);
 
   useEffect(() => {
     async function fetchMovies(query = "") {
@@ -35,6 +40,9 @@ function App() {
           throw new Error("Failed to fetch movies");
         }
         setMovieData(data.results || []);
+        if (query && data.results.length > 0) {
+          await udpateSearchCount(query, data.results[0]);
+        }
       } catch (error) {
         console.error("Error fetching movies:", error);
         setErrorMessage("Failed to fetch movies. Please try again later.");
@@ -42,8 +50,8 @@ function App() {
         setIsLoading(false);
       }
     }
-    fetchMovies(searchTerm);
-  }, [searchTerm]);
+    fetchMovies(debouncedSearchTerm);
+  }, [debouncedSearchTerm]);
   return (
     <main>
       <div className="pattern" />
